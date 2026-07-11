@@ -11,23 +11,23 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import javax.servlet.AsyncContext;
-import javax.servlet.DispatcherType;
-import javax.servlet.RequestDispatcher;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.ServletInputStream;
-import javax.servlet.ServletOutputStream;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-import javax.servlet.http.HttpUpgradeHandler;
-import javax.servlet.http.Part;
+import jakarta.servlet.AsyncContext;
+import jakarta.servlet.DispatcherType;
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.ServletConfig;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletInputStream;
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpUpgradeHandler;
+import jakarta.servlet.http.Part;
 import org.junit.Test;
 
 public class TestHealthCheck {
@@ -212,18 +212,6 @@ public class TestHealthCheck {
       }
 
       @Override
-      public String encodeUrl(String url) {
-        // TODO Auto-generated method stub
-        return null;
-      }
-
-      @Override
-      public String encodeRedirectUrl(String url) {
-        // TODO Auto-generated method stub
-        return null;
-      }
-
-      @Override
       public void sendError(int sc, String msg) {
         // TODO Auto-generated method stub
 
@@ -283,11 +271,6 @@ public class TestHealthCheck {
       }
 
       @Override
-      public void setStatus(int sc, String sm) {
-        status = sc;
-      }
-
-      @Override
       public int getStatus() {
         return status;
       }
@@ -315,6 +298,21 @@ public class TestHealthCheck {
   protected static HttpServletRequest getMockRequest(String uri, String method) {
     return new HttpServletRequest() {
       private final Map<String, String[]> params = new HashMap<>();
+
+      @Override
+      public String getRequestId() {
+        return null;
+      }
+
+      @Override
+      public String getProtocolRequestId() {
+        return null;
+      }
+
+      @Override
+      public jakarta.servlet.ServletConnection getServletConnection() {
+        return null;
+      }
 
       public Map<String, String[]> getParameterMap() {
         return params;
@@ -568,16 +566,6 @@ public class TestHealthCheck {
       @Override
       public boolean isUserInRole(String arg0) {
         return true;
-      }
-
-      @Override
-      public String getRealPath(String path) {
-        return null;
-      }
-
-      @Override
-      public boolean isRequestedSessionIdFromUrl() {
-        return false;
       }
 
       @Override

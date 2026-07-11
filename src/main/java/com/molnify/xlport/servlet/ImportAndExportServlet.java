@@ -14,16 +14,16 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.logging.Logger;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import org.apache.commons.fileupload.FileItemIterator;
-import org.apache.commons.fileupload.FileItemStream;
-import org.apache.commons.fileupload.FileUploadException;
-import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import jakarta.servlet.ServletConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.apache.commons.fileupload2.core.FileItemInput;
+import org.apache.commons.fileupload2.core.FileItemInputIterator;
+import org.apache.commons.fileupload2.core.FileUploadException;
+import org.apache.commons.fileupload2.jakarta.servlet6.JakartaServletFileUpload;
 import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -143,17 +143,17 @@ public class ImportAndExportServlet extends HttpServlet {
         || req.getContentType().equals("application/x-www-form-urlencoded"))) {
       workbook = (XSSFWorkbook) WorkbookFactory.create(req.getInputStream());
     } else {
-      ServletFileUpload upload = new ServletFileUpload();
-      FileItemStream item;
+      JakartaServletFileUpload<?, ?> upload = new JakartaServletFileUpload<>();
+      FileItemInput item;
       InputStream stream = null;
-      FileItemIterator iterator = upload.getItemIterator(req);
+      FileItemInputIterator iterator = upload.getItemIterator(req);
       // This is a multipart request with two files/fields sent
       // Both need to present to process the data
       // 1) The request as JSON
       // 2) The Excel file to extract data from
       while (iterator.hasNext()) {
         item = iterator.next();
-        stream = item.openStream();
+        stream = item.getInputStream();
         if (("file".equals(item.getFieldName()) || "request".equals(item.getFieldName()))
             && !item.isFormField()) {
           if ("request".equals(item.getFieldName())) {
