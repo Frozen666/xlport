@@ -3,17 +3,25 @@
 # For customer delivery on x86_64 servers, build with: docker build --platform=linux/amd64 ...
 
 FROM maven:3.9-eclipse-temurin-21 AS build
+ARG JETTY_VERSION=12.1.11
 WORKDIR /build
 COPY pom.xml .
 RUN mvn -B -q dependency:go-offline
 COPY src ./src
 RUN mvn -B clean package
 
+# Jetty is downloaded and extracted here rather than in the runtime stage:
+# ubuntu:26.04's tar needs syscalls that emulated cross-platform builds
+# (e.g. --platform=linux/amd64 on Apple Silicon) don't implement yet.
+RUN curl -fsSL "https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-home/${JETTY_VERSION}/jetty-home-${JETTY_VERSION}.tar.gz" -o /tmp/jetty.tgz \
+    && tar -xzf /tmp/jetty.tgz -C /opt \
+    && mv "/opt/jetty-home-${JETTY_VERSION}" /opt/jetty-home \
+    && rm /tmp/jetty.tgz
+
 # Runtime: Ubuntu 26.04 LTS + distro OpenJDK 25 JRE (LTS, patched via Ubuntu security updates)
 # + Jetty 12.1 (ee10 environment for the jakarta.servlet webapp).
 FROM ubuntu:26.04
 
-ARG JETTY_VERSION=12.1.11
 ENV JETTY_HOME=/opt/jetty-home \
     JETTY_BASE=/opt/jetty-base
 
@@ -25,10 +33,8 @@ RUN apt-get update \
     # bundled Go dependencies don't show up in vulnerability scans
     && rm -f /usr/bin/pebble
 
-RUN curl -fsSL "https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-home/${JETTY_VERSION}/jetty-home-${JETTY_VERSION}.tar.gz" -o /tmp/jetty.tgz \
-    && tar -xzf /tmp/jetty.tgz -C /opt \
-    && mv "/opt/jetty-home-${JETTY_VERSION}" "${JETTY_HOME}" \
-    && rm /tmp/jetty.tgz
+# jetty-home stays root-owned; only the writable base dir belongs to the jetty user
+COPY --from=build /opt/jetty-home ${JETTY_HOME}
 
 RUN useradd --system --user-group --no-create-home --home-dir "${JETTY_BASE}" jetty \
     && mkdir -p "${JETTY_BASE}/tmp" "${JETTY_BASE}/work" \
