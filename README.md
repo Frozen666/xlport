@@ -13,7 +13,7 @@ A Java service for bidirectional conversion between Excel spreadsheets and JSON.
 
 ## Requirements
 
-- Java 8+
+- Java 17+
 - Maven 3.x
 
 ## Quick Start
@@ -145,24 +145,12 @@ Tests that require Google credentials will be automatically skipped if credentia
 
 ## Docker Deployment
 
-To deploy xlPort as a containerized service:
+The repository includes a multi-stage `Dockerfile` (Ubuntu 26.04, OpenJDK 25 JRE, Jetty 12.1) that builds the WAR inside Docker, so no local Maven setup is needed:
 
-1. Build the WAR (ensure `<packaging>war</packaging>` in `pom.xml`):
-   ```bash
-   mvn clean verify
-   ```
-
-2. Create a `Dockerfile`:
-   ```dockerfile
-   FROM jetty:9.4-jdk11
-   ADD ./target/xlport-2.0.0 /var/lib/jetty/webapps/ROOT
-   ```
-
-3. Build and run:
-   ```bash
-   docker build -t xlport .
-   docker run -p 8080:8080 xlport
-   ```
+```bash
+docker build -t xlport .
+docker run -p 8080:8080 xlport
+```
 
 Set environment variables (`XLPORT_API_KEY`, `XLPORT_gcs_*`, etc.) via `docker run -e` or your orchestrator.
 

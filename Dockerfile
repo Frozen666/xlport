@@ -40,8 +40,9 @@ COPY --from=build --chown=jetty:jetty /build/target/xlport-*.war ${JETTY_BASE}/w
 
 USER jetty
 WORKDIR ${JETTY_BASE}
-ENV TMPDIR=/opt/jetty-base/tmp
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s \
     CMD curl -fs http://localhost:8080/alive || exit 1
-CMD ["java", "-jar", "/opt/jetty-home/start.jar"]
+# java.io.tmpdir keeps JVM/Jetty temp files inside the jetty-owned base dir
+# (the JVM does not honor the TMPDIR environment variable)
+CMD ["java", "-Djava.io.tmpdir=/opt/jetty-base/tmp", "-jar", "/opt/jetty-home/start.jar"]
