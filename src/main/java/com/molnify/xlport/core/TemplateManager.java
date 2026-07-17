@@ -128,6 +128,11 @@ public class TemplateManager {
       template.originalFileName = id;
     }
 
+    if (template.workbook == null) {
+      log.warning("Template [" + id + "] could not be loaded");
+      return null;
+    }
+
     log.info(
         "Template ["
             + template.originalFileName

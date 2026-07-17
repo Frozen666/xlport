@@ -9,6 +9,10 @@ COPY pom.xml .
 RUN mvn -B -q dependency:go-offline
 COPY src ./src
 RUN mvn -B clean package
+# Unpack the war so the runtime can deploy it as an exploded directory. This keeps
+# WEB-INF/templates at a stable path that deployments can bind-mount templates into
+# (a packed war would be extracted by Jetty into a temp dir at startup instead).
+RUN mkdir /build/ROOT && cd /build/ROOT && jar -xf /build/target/xlport-*.war
 
 # Jetty is downloaded and extracted here rather than in the runtime stage:
 # ubuntu:26.04's tar needs syscalls that emulated cross-platform builds
@@ -22,8 +26,11 @@ RUN curl -fsSL "https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-home/${JE
 # + Jetty 12.1 (ee10 environment for the jakarta.servlet webapp).
 FROM ubuntu:26.04
 
+# JETTY_BASE stays at /var/lib/jetty (the path used by the previous jetty:9.4-based
+# image) so existing bind mounts like /var/lib/jetty/webapps/ROOT/WEB-INF/templates
+# keep working unchanged.
 ENV JETTY_HOME=/opt/jetty-home \
-    JETTY_BASE=/opt/jetty-base
+    JETTY_BASE=/var/lib/jetty
 
 RUN apt-get update \
     && apt-get upgrade -y \
@@ -42,7 +49,7 @@ RUN useradd --system --user-group --no-create-home --home-dir "${JETTY_BASE}" je
     && java -jar "${JETTY_HOME}/start.jar" --add-modules=server,http,ee10-deploy,ee10-annotations,ee10-jsp \
     && chown -R jetty:jetty "${JETTY_BASE}"
 
-COPY --from=build --chown=jetty:jetty /build/target/xlport-*.war ${JETTY_BASE}/webapps/ROOT.war
+COPY --from=build --chown=jetty:jetty /build/ROOT ${JETTY_BASE}/webapps/ROOT
 
 USER jetty
 WORKDIR ${JETTY_BASE}
@@ -51,4 +58,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s \
     CMD curl -fs http://localhost:8080/alive || exit 1
 # java.io.tmpdir keeps JVM/Jetty temp files inside the jetty-owned base dir
 # (the JVM does not honor the TMPDIR environment variable)
-CMD ["java", "-Djava.io.tmpdir=/opt/jetty-base/tmp", "-jar", "/opt/jetty-home/start.jar"]
+CMD ["java", "-Djava.io.tmpdir=/var/lib/jetty/tmp", "-jar", "/opt/jetty-home/start.jar"]

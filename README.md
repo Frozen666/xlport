@@ -154,6 +154,15 @@ docker run -p 8080:8080 xlport
 
 Set environment variables (`XLPORT_API_KEY`, `XLPORT_gcs_*`, etc.) via `docker run -e` or your orchestrator.
 
+To serve templates from the local filesystem, bind-mount your template directory into the webapp:
+
+```bash
+docker run -p 8080:8080 \
+  -e XLPORT_USE_LOCAL_TEMPLATES=TRUE \
+  -v /path/to/templates:/var/lib/jetty/webapps/ROOT/WEB-INF/templates \
+  xlport
+```
+
 ## License
 
 Licensed under the [Apache License 2.0](LICENSE).
