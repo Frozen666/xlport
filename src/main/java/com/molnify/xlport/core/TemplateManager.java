@@ -144,7 +144,12 @@ public class TemplateManager {
     }
 
     if (template.workbook == null) {
-      log.warning("Template [" + id + "] could not be loaded");
+      if (dummyTemplateName.equals(template.originalFileName))
+        log.severe(
+            "Built-in fallback template /WEB-INF/"
+                + dummyTemplateName
+                + " could not be loaded - the webapp appears to be packaged incorrectly");
+      else log.warning("Template [" + id + "] could not be loaded");
       return null;
     }
 
