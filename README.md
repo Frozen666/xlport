@@ -118,7 +118,7 @@ Configuration is via environment variables:
 |----------|-------------|
 | `XLPORT_API_KEY` | If set, requires `Authorization: xlport apikey <key>` header |
 | `XLPORT_USE_CORS` | Set to `FALSE` to disable CORS (enabled by default) |
-| `XLPORT_USE_LOCAL_TEMPLATES` | Set to `TRUE` to load templates from local filesystem instead of GCS |
+| `XLPORT_USE_LOCAL_TEMPLATES` | Set to `TRUE` to always load templates from the local filesystem, even when Google credentials are configured (GCS is used when credentials are present) |
 | `XLPORT_GCS_BUCKET_NAME` | GCS bucket name for template storage (default: `xlport-templates`) |
 | `XLPORT_GCS_PATH` | Path prefix within the GCS bucket (default: `xlport/`) |
 | `XLPORT_gcs_*` | Google Cloud credentials for GCS template storage and PDF export (see below) |

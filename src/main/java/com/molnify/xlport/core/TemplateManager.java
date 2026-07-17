@@ -47,13 +47,28 @@ public class TemplateManager {
   private static final String GCS_PATH =
       System.getenv("XLPORT_GCS_PATH") != null ? System.getenv("XLPORT_GCS_PATH") : "xlport/";
 
-  private static boolean USE_GCS = false;
+  private static final boolean FORCE_LOCAL_TEMPLATES;
 
   static {
     String local = System.getenv("XLPORT_USE_LOCAL_TEMPLATES");
-    if (local != null && "TRUE".equalsIgnoreCase(local.trim())) USE_GCS = false;
-    if (USE_GCS) log.info("Using GCS bucket " + GCS_BUCKET_NAME + " for templates");
-    else log.info("Using /WEB-INF/templates for templates");
+    FORCE_LOCAL_TEMPLATES = local != null && "TRUE".equalsIgnoreCase(local.trim());
+    if (FORCE_LOCAL_TEMPLATES) log.info("Using /WEB-INF/templates for templates");
+    else
+      log.info(
+          "Using GCS bucket "
+              + GCS_BUCKET_NAME
+              + " for templates when Google credentials are configured,"
+              + " /WEB-INF/templates otherwise");
+  }
+
+  /**
+   * GCS is used only when a Google credential is actually configured (via XLPORT_gcs_* environment
+   * variables or {@link InitXlPort#setGoogleCredential}); XLPORT_USE_LOCAL_TEMPLATES=TRUE forces
+   * local templates regardless. Evaluated per request so credentials set after startup (library
+   * mode) are honored.
+   */
+  private static boolean useGcs() {
+    return !FORCE_LOCAL_TEMPLATES && InitXlPort.getGoogleCredential() != null;
   }
 
   public static void init(ServletContext context) {
@@ -113,7 +128,7 @@ public class TemplateManager {
       } catch (IOException e) {
         log.warning("Failed to fetch Google Sheet: " + e.getMessage());
       }
-    } else if (USE_GCS) {
+    } else if (useGcs()) {
       ByteArrayOutputStream baos = getWithFullIdFromGCS(id);
       if (baos == null) return null;
       ByteArrayInputStream inStream = new ByteArrayInputStream(baos.toByteArray());
