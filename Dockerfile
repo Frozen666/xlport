@@ -12,7 +12,10 @@ RUN mvn -B clean package
 # Unpack the war so the runtime can deploy it as an exploded directory. This keeps
 # WEB-INF/templates at a stable path that deployments can bind-mount templates into
 # (a packed war would be extracted by Jetty into a temp dir at startup instead).
-RUN mkdir /build/ROOT && cd /build/ROOT && jar -xf /build/target/xlport-*.war
+# $war stays a single word only if the glob matches exactly one file; with two
+# matches test -f fails and the build stops instead of unpacking a partial webapp
+RUN war=$(echo /build/target/xlport-*.war) && test -f "$war" \
+    && mkdir /build/ROOT && cd /build/ROOT && jar -xf "$war"
 
 # Jetty is downloaded and extracted here rather than in the runtime stage:
 # ubuntu:26.04's tar needs syscalls that emulated cross-platform builds
