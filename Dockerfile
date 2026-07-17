@@ -52,7 +52,10 @@ RUN groupadd --system --gid 999 jetty \
     && java -jar "${JETTY_HOME}/start.jar" --add-modules=server,http,ee10-deploy,ee10-annotations,ee10-jsp \
     && chown -R jetty:jetty "${JETTY_BASE}"
 
-COPY --from=build --chown=jetty:jetty /build/ROOT ${JETTY_BASE}/webapps/ROOT
+# The webapp stays root-owned (read-only for the jetty user): with JSP enabled, a
+# writable webapp directory would let a compromised process plant executable JSPs
+COPY --from=build /build/ROOT ${JETTY_BASE}/webapps/ROOT
+RUN chown root:root "${JETTY_BASE}/webapps"
 
 USER jetty
 WORKDIR ${JETTY_BASE}

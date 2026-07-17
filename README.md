@@ -159,7 +159,7 @@ To serve templates from the local filesystem, bind-mount your template directory
 ```bash
 docker run -p 8080:8080 \
   -e XLPORT_USE_LOCAL_TEMPLATES=TRUE \
-  -v /path/to/templates:/var/lib/jetty/webapps/ROOT/WEB-INF/templates \
+  -v /path/to/templates:/var/lib/jetty/webapps/ROOT/WEB-INF/templates:ro \
   xlport
 ```
 
