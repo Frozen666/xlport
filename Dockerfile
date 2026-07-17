@@ -43,7 +43,10 @@ RUN apt-get update \
 # jetty-home stays root-owned; only the writable base dir belongs to the jetty user
 COPY --from=build /opt/jetty-home ${JETTY_HOME}
 
-RUN useradd --system --user-group --no-create-home --home-dir "${JETTY_BASE}" jetty \
+# UID/GID pinned to 999, the values used by the official jetty:9.4 image, so host
+# directories chowned for the old image stay readable after upgrading
+RUN groupadd --system --gid 999 jetty \
+    && useradd --system --uid 999 --gid jetty --no-create-home --home-dir "${JETTY_BASE}" jetty \
     && mkdir -p "${JETTY_BASE}/tmp" "${JETTY_BASE}/work" \
     && cd "${JETTY_BASE}" \
     && java -jar "${JETTY_HOME}/start.jar" --add-modules=server,http,ee10-deploy,ee10-annotations,ee10-jsp \
