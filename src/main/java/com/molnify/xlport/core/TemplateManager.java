@@ -40,10 +40,10 @@ public class TemplateManager {
   private static ServletContext context = null;
   private static Storage storage;
   private static boolean GCS_INITIALIZED = false;
-  private static final String GCS_BUCKET_NAME =
-      System.getenv("XLPORT_GCS_BUCKET_NAME") != null
-          ? System.getenv("XLPORT_GCS_BUCKET_NAME")
-          : "xlport-templates";
+  // GCS template storage is opt-in: it is used only when a bucket is named explicitly. Deployments
+  // that set Google credentials for PDF export or Google Sheets templates keep loading templates
+  // from /WEB-INF/templates, as they always have.
+  private static final String GCS_BUCKET_NAME = blankToNull(System.getenv("XLPORT_GCS_BUCKET_NAME"));
   private static final String GCS_PATH =
       System.getenv("XLPORT_GCS_PATH") != null ? System.getenv("XLPORT_GCS_PATH") : "xlport/";
 
@@ -52,7 +52,8 @@ public class TemplateManager {
   static {
     String local = System.getenv("XLPORT_USE_LOCAL_TEMPLATES");
     FORCE_LOCAL_TEMPLATES = local != null && "TRUE".equalsIgnoreCase(local.trim());
-    if (FORCE_LOCAL_TEMPLATES) log.info("Using /WEB-INF/templates for templates");
+    if (FORCE_LOCAL_TEMPLATES || GCS_BUCKET_NAME == null)
+      log.info("Using /WEB-INF/templates for templates");
     else
       log.info(
           "Using GCS bucket "
@@ -61,14 +62,21 @@ public class TemplateManager {
               + " /WEB-INF/templates otherwise");
   }
 
+  private static String blankToNull(String s) {
+    return s == null || s.trim().isEmpty() ? null : s.trim();
+  }
+
   /**
-   * GCS is used only when a Google credential is actually configured (via XLPORT_gcs_* environment
-   * variables or {@link InitXlPort#setGoogleCredential}); XLPORT_USE_LOCAL_TEMPLATES=TRUE forces
-   * local templates regardless. Evaluated per request so credentials set after startup (library
-   * mode) are honored.
+   * GCS is used only when XLPORT_GCS_BUCKET_NAME is set and a Google credential is configured (via
+   * XLPORT_gcs_* environment variables or {@link InitXlPort#setGoogleCredential});
+   * XLPORT_USE_LOCAL_TEMPLATES=TRUE forces local templates regardless. The bucket check comes first
+   * so library users without GCS never load InitXlPort (which needs the servlet API). Evaluated per
+   * request so credentials set after startup (library mode) are honored.
    */
   private static boolean useGcs() {
-    return !FORCE_LOCAL_TEMPLATES && InitXlPort.getGoogleCredential() != null;
+    return !FORCE_LOCAL_TEMPLATES
+        && GCS_BUCKET_NAME != null
+        && InitXlPort.getGoogleCredential() != null;
   }
 
   public static void init(ServletContext context) {
@@ -233,6 +241,8 @@ public class TemplateManager {
   }
 
   public static ByteArrayOutputStream getWithFullIdFromGCS(String fullId) {
+    if (GCS_BUCKET_NAME == null)
+      throw new IllegalStateException("XLPORT_GCS_BUCKET_NAME is not set");
     if (!GCS_INITIALIZED) initGCS();
     try {
       Get get = storage.objects().get(GCS_BUCKET_NAME, GCS_PATH + fullId);
