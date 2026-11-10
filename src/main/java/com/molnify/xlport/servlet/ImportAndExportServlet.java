@@ -144,6 +144,9 @@ public class ImportAndExportServlet extends HttpServlet {
       workbook = (XSSFWorkbook) WorkbookFactory.create(req.getInputStream());
     } else {
       JakartaServletFileUpload<?, ?> upload = new JakartaServletFileUpload<>();
+      // fileupload2 caps each part's headers at 512 bytes by default (fileupload 1.x allowed
+      // 10 KiB), which rejects long or non-ASCII filenames sent as RFC 5987 filename*=
+      upload.setMaxPartHeaderSize(10 * 1024);
       FileItemInput item;
       InputStream stream = null;
       FileItemInputIterator iterator = upload.getItemIterator(req);
