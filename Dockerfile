@@ -1,5 +1,5 @@
 # Multi-stage build: the war is built inside Docker, so no local Maven setup is needed.
-# Build:  docker build -t xlport/xlport-repo:v6 .
+# Build:  docker build -t xlport/xlport-repo:v6.1 .
 # For x86_64 servers (k8s, customer delivery), always build with --platform=linux/amd64:
 # an image built on Apple Silicon is arm64 otherwise and fails with "exec format error".
 #
