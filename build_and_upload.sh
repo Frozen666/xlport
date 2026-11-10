@@ -4,11 +4,10 @@
 # Start Docker (takes some time)
 open /Applications/Docker.app
 
-# Build the war/jar
-mvn clean verify || exit 1
-
-# Build the image locally (you need Docker installed and running)
-docker build -t eu.gcr.io/rapidcomputeengine/xlport:v2-118 . || exit 2
+# Build the image locally (you need Docker installed and running). The war is built and
+# tested inside Docker. --platform: the cluster runs x86_64; without it an image built on
+# an Apple Silicon Mac is arm64 and fails in k8s with "exec format error".
+docker build --platform=linux/amd64 -t eu.gcr.io/rapidcomputeengine/xlport:v2-118 . || exit 2
 
 # Upload the image to the registry
 docker push eu.gcr.io/rapidcomputeengine/xlport:v2-118 || exit 3

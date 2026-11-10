@@ -1,9 +1,18 @@
 # Multi-stage build: the war is built inside Docker, so no local Maven setup is needed.
 # Build:  docker build -t xlport/xlport-repo:v6 .
-# For customer delivery on x86_64 servers, build with: docker build --platform=linux/amd64 ...
+# For x86_64 servers (k8s, customer delivery), always build with --platform=linux/amd64:
+# an image built on Apple Silicon is arm64 otherwise and fails with "exec format error".
+#
+# Base images are pinned by digest so a rebuild of the same commit uses the same base;
+# Dependabot (.github/dependabot.yml) opens PRs when the tags move. apt-get upgrade
+# below still pulls the latest Ubuntu security fixes at build time.
 
-FROM maven:3.9-eclipse-temurin-21 AS build
+# The build stage runs on the build machine's own platform: the war and Jetty are
+# platform-independent, so Maven and the tests never run under emulation.
+FROM --platform=$BUILDPLATFORM maven:3.9-eclipse-temurin-21@sha256:99e61abcff91a9b1333463bd8451fb18495d6eba9250ac66a338b518f8278320 AS build
+# Bump both together; the checksum is the one Maven Central publishes as jetty-home-<version>.tar.gz.sha512
 ARG JETTY_VERSION=12.1.15
+ARG JETTY_SHA512=f1e26129ae13e671b1fffaeed43111fe2ca421660680aaa665230716c1c3060b03dd1ce229e787d20c877b36182899a19459766b4058e4245db7a095e9249544
 WORKDIR /build
 COPY pom.xml .
 RUN mvn -B -q dependency:go-offline
@@ -21,6 +30,7 @@ RUN war=$(echo /build/target/xlport-*.war) && test -f "$war" \
 # ubuntu:26.04's tar needs syscalls that emulated cross-platform builds
 # (e.g. --platform=linux/amd64 on Apple Silicon) don't implement yet.
 RUN curl -fsSL "https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-home/${JETTY_VERSION}/jetty-home-${JETTY_VERSION}.tar.gz" -o /tmp/jetty.tgz \
+    && echo "${JETTY_SHA512}  /tmp/jetty.tgz" | sha512sum -c - \
     && tar -xzf /tmp/jetty.tgz -C /opt \
     && mv "/opt/jetty-home-${JETTY_VERSION}" /opt/jetty-home \
     && rm /tmp/jetty.tgz \
@@ -32,13 +42,15 @@ RUN curl -fsSL "https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-home/${JE
 
 # Runtime: Ubuntu 26.04 LTS + distro OpenJDK 25 JRE (LTS, patched via Ubuntu security updates)
 # + Jetty 12.1 (ee10 environment for the jakarta.servlet webapp).
-FROM ubuntu:26.04
+FROM ubuntu:26.04@sha256:6a06111c3b0a8600feadb270aec771dc239bf407b25625f93f44ab00e11f4d3c
 
 # JETTY_BASE stays at /var/lib/jetty (the path used by the previous jetty:9.4-based
 # image) so existing bind mounts like /var/lib/jetty/webapps/ROOT/WEB-INF/templates
 # keep working unchanged.
+# LANG: without a UTF-8 locale Java writes non-ASCII characters to the logs as '?'.
 ENV JETTY_HOME=/opt/jetty-home \
-    JETTY_BASE=/var/lib/jetty
+    JETTY_BASE=/var/lib/jetty \
+    LANG=C.UTF-8
 
 RUN apt-get update \
     && apt-get upgrade -y \
@@ -65,11 +77,12 @@ RUN groupadd --system --gid 999 jetty \
 COPY --from=build /build/ROOT ${JETTY_BASE}/webapps/ROOT
 RUN chown root:root "${JETTY_BASE}/webapps"
 
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
 USER jetty
 WORKDIR ${JETTY_BASE}
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s \
     CMD curl -fs http://localhost:8080/alive || exit 1
-# java.io.tmpdir keeps JVM/Jetty temp files inside the jetty-owned base dir
-# (the JVM does not honor the TMPDIR environment variable)
-CMD ["java", "-Djava.io.tmpdir=/var/lib/jetty/tmp", "-jar", "/opt/jetty-home/start.jar"]
+# The entrypoint starts Jetty and honors JAVA_OPTIONS, like the old jetty:9.4 image
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
