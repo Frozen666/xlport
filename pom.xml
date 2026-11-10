@@ -166,7 +166,7 @@
 				<!-- This is for running Jetty directly from Maven -->
 				<groupId>org.eclipse.jetty.ee10</groupId>
 				<artifactId>jetty-ee10-maven-plugin</artifactId>
-				<version>12.1.11</version>
+				<version>12.1.15</version>
 				<configuration>
 					<scan>10</scan>
 					<httpConnector>

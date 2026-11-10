@@ -3,7 +3,7 @@
 # For customer delivery on x86_64 servers, build with: docker build --platform=linux/amd64 ...
 
 FROM maven:3.9-eclipse-temurin-21 AS build
-ARG JETTY_VERSION=12.1.11
+ARG JETTY_VERSION=12.1.15
 WORKDIR /build
 COPY pom.xml .
 RUN mvn -B -q dependency:go-offline
@@ -23,7 +23,12 @@ RUN war=$(echo /build/target/xlport-*.war) && test -f "$war" \
 RUN curl -fsSL "https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-home/${JETTY_VERSION}/jetty-home-${JETTY_VERSION}.tar.gz" -o /tmp/jetty.tgz \
     && tar -xzf /tmp/jetty.tgz -C /opt \
     && mv "/opt/jetty-home-${JETTY_VERSION}" /opt/jetty-home \
-    && rm /tmp/jetty.tgz
+    && rm /tmp/jetty.tgz \
+    # Sign-In with Ethereum is not used; drop its module and jar so neither can be
+    # enabled and the jar doesn't show up in vulnerability scans. test -e stops the
+    # build if a future Jetty renames them, instead of silently keeping them.
+    && test -e /opt/jetty-home/modules/ethereum.mod \
+    && rm /opt/jetty-home/modules/ethereum.mod /opt/jetty-home/lib/jetty-ethereum-*.jar
 
 # Runtime: Ubuntu 26.04 LTS + distro OpenJDK 25 JRE (LTS, patched via Ubuntu security updates)
 # + Jetty 12.1 (ee10 environment for the jakarta.servlet webapp).
