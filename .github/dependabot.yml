@@ -1,0 +1,19 @@
+# Keeps the pinned base image digests in the Dockerfile current (a pinned digest
+# would otherwise never pick up security fixes), plus Maven dependencies and the
+# GitHub Actions used by CI. Jetty itself is pinned via JETTY_VERSION/JETTY_SHA512
+# in the Dockerfile and has to be bumped by hand.
+version: 2
+updates:
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: maven
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
