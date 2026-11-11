@@ -1,5 +1,5 @@
 # Multi-stage build: the war is built inside Docker, so no local Maven setup is needed.
-# Build:  docker build -t xlport/xlport-repo:v6.1 .
+# Build:  docker build -t xlport/xlport-repo:v6.2 .
 # For x86_64 servers (k8s, customer delivery), always build with --platform=linux/amd64:
 # an image built on Apple Silicon is arm64 otherwise and fails with "exec format error".
 #
@@ -84,5 +84,7 @@ WORKDIR ${JETTY_BASE}
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s \
     CMD curl -fs http://localhost:8080/alive || exit 1
-# The entrypoint starts Jetty and honors JAVA_OPTIONS, like the old jetty:9.4 image
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+# The start script runs Jetty and honors JAVA_OPTIONS, like the old jetty:9.4 image.
+# Deliberately CMD, not ENTRYPOINT: v6 shipped with only CMD set, and deployment
+# tooling that re-creates the image may carry over CMD but drop ENTRYPOINT.
+CMD ["/usr/local/bin/docker-entrypoint.sh"]
